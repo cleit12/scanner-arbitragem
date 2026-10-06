@@ -39,9 +39,9 @@
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #333; }
         th { background: #2a2a2a; color: #aaa; }
         tr:hover { background: #252525; }
-        .error-box { background: #2d1f1f; color: #ff6b6b; padding: 15px; border-radius: 8px; margin: 15px 0; display: none; }
         .info-box { background: #1a2332; color: #74c0fc; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
         a { color: #4CAF50; text-decoration: none; }
+        .demo-note { background: #2e2e1a; color: #ffd700; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -51,7 +51,8 @@
     </header>
 
     <div class="info-box" id="info-box">
-        ℹ️ Usando múltiplos proxies automáticos. Clique em "Atualizar Dados" para começar.
+        ℹ️ Clique em "Atualizar Dados Reais" para buscar os preços. Se não conectar, tente de novo em instantes.
+        <div class="demo-note">💡 Dica: A API tem limites — se não carregar, aguarde 30 segundos e tente novamente</div>
     </div>
 
     <div class="status-bar">
@@ -67,7 +68,7 @@
         </div>
     </div>
 
-    <div id="error-box" class="error-box"></div>
+    <div id="error-box" style="background:#2d1f1f; color:#ff6b6b; padding:15px; border-radius:8px; margin:15px 0; display:none;"></div>
 
     <div class="summary">
         <div class="card">
@@ -111,17 +112,11 @@
     </table>
 
 <script>
-const PROXIES = [
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `https://thingproxy.freeboard.io/fetch/${url}`
-];
-
 const PARES = [
-    { chain: 'solana', pair: 'So11111111111111111111111111111111111111112/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', name: 'SOL/USDC' },
-    { chain: 'bsc', pair: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c/0x55d398326f99059fF775485246999027B3197955', name: 'BNB/USDT' },
-    { chain: 'ethereum', pair: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083e65C4CC/0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', name: 'ETH/USDC' },
-    { chain: 'polygon', pair: '0x7ceB23fD6bC0adD59E62ac25578270cffB97D31f/0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', name: 'ETH/USDC' }
+    { chain: 'solana', pair: 'So11111111111111111111111111111111111111112_EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', name: 'SOL/USDC' },
+    { chain: 'bsc', pair: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c_0x55d398326f99059fF775485246999027B3197955', name: 'BNB/USDT' },
+    { chain: 'ethereum', pair: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083e65C4CC_0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', name: 'ETH/USDC' },
+    { chain: 'polygon', pair: '0x7ceB23fD6bC0adD59E62ac25578270cffB97D31f_0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', name: 'ETH/USDC' }
 ];
 
 const networkInfo = {
@@ -142,25 +137,11 @@ function atualizarStatus(tipo, texto) {
     text.textContent = texto;
     
     if (tipo === 'red' && texto) {
-        errorBox.textContent = texto;
+        errorBox.textContent = '❌ ' + texto;
         errorBox.style.display = 'block';
     } else {
         errorBox.style.display = 'none';
     }
-}
-
-async function buscarComProxy(url) {
-    for (let i = 0; i < PROXIES.length; i++) {
-        try {
-            const proxyUrl = PROXIES[i](url);
-            const resposta = await fetch(proxyUrl);
-            if (!resposta.ok) throw new Error(`Proxy ${i + 1} falhou`);
-            return await resposta.json();
-        } catch (erro) {
-            continue;
-        }
-    }
-    throw new Error('Todos os proxies falharam. Tente novamente em instantes.');
 }
 
 async function buscarDadosReais() {
@@ -171,16 +152,20 @@ async function buscarDadosReais() {
     btn.disabled = true;
     btn.textContent = 'Buscando...';
     
-    atualizarStatus('yellow', 'Buscando dados...');
+    atualizarStatus('yellow', 'Conectando com DexScreener...');
     
     const minProfit = parseFloat(document.getElementById('min-profit').value) || 0.5;
     const resultados = [];
-    let erros = 0;
+    let sucessos = 0;
     
     for (const par of PARES) {
         try {
             const apiUrl = `https://api.dexscreener.com/latest/dex/pairs/${par.chain}/${par.pair}`;
-            const dados = await buscarComProxy(apiUrl);
+            const resposta = await fetch(apiUrl);
+            
+            if (!resposta.ok) throw new Error(`Erro: ${resposta.status}`);
+            
+            const dados = await resposta.json();
             
             if (dados && dados.pair) {
                 const precoAtual = parseFloat(dados.pair.priceUsd) || 0;
@@ -192,33 +177,34 @@ async function buscarDadosReais() {
                     change: variacao,
                     url: dados.pair.url || ''
                 });
+                sucessos++;
             }
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 800));
         } catch (erro) {
-            erros++;
+            console.log(`Erro em ${par.name}:`, erro.message);
         }
     }
     
-    atualizarTela(resultados, minProfit, erros);
+    atualizarTela(resultados, minProfit, sucessos, PARES.length);
     
     btn.disabled = false;
     btn.textContent = '🔄 Atualizar Dados Reais';
     buscando = false;
 }
 
-function atualizarTela(dados, minProfit, erros) {
+function atualizarTela(dados, minProfit, sucessos, total) {
     const agora = new Date().toLocaleTimeString('pt-BR');
     document.getElementById('last-time').textContent = agora;
     
     if (dados.length === 0) {
-        atualizarStatus('red', 'Nenhum dado retornado. Tente novamente em instantes.');
+        atualizarStatus('red', 'Nenhum dado retornado. Tente novamente em 30 segundos. A API do DexScreener pode estar temporariamente limitando requisições.');
         return;
     }
     
-    if (erros > 0) {
-        atualizarStatus('yellow', `${dados.length} de ${PARES.length} par(es) carregado(s)`);
+    if (sucessos < total) {
+        atualizarStatus('yellow', `${sucessos} de ${total} pares carregados. Alguns não responderam.`);
     } else {
-        atualizarStatus('green', 'Conectado em tempo real!');
+        atualizarStatus('green', `Conectado! ${sucessos} pares carregados com sucesso ✅`);
     }
     
     const maxLucro = dados.length > 0 ? Math.max(...dados.map(d => Math.abs(d.change))) : 0;
@@ -269,7 +255,7 @@ function renderTabela(dados, minProfit) {
     const filtrados = dados.filter(d => Math.abs(d.change) >= minProfit);
     
     if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999; padding:30px;">Nenhuma oportunidade acima de ${minProfit}% encontrada</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#999; padding:30px;">Nenhuma oportunidade acima de ${minProfit}% encontrada no momento</td></tr>`;
         return;
     }
     
