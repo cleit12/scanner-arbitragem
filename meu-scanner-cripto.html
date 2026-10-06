@@ -3,210 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner de Arbitragem DEX</title>
+    <title>Scanner de Arbitragem DEX — Dados Reais</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background: #121212; color: #fff; padding: 20px; max-width: 1200px; margin: 0 auto; }
-        header { text-align: center; margin-bottom: 30px; }
-        h1 { color: #4CAF50; margin-bottom: 10px; }
-        .status-bar { display: flex; justify-content: space-between; align-items: center; background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .status { display: flex; align-items: center; gap: 8px; }
-        .dot { width: 12px; height: 12px; border-radius: 50%; background: #ff4444; }
-        .dot.active { background: #4CAF50; }
-        .btn { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        .btn:hover { background: #45a049; }
-        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .card { background: #1e1e1e; padding: 20px; border-radius: 8px; text-align: center; }
-        .card h3 { font-size: 14px; color: #aaa; margin-bottom: 10px; }
-        .card .value { font-size: 24px; font-weight: bold; color: #4CAF50; }
-        .networks { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .network-card { background: #1e1e1e; padding: 15px; border-radius: 8px; border-left: 4px solid #666; }
-        .network-card.sol { border-color: #00FFA3; }
-        .network-card.bsc { border-color: #F3BA2F; }
-        .network-card.poly { border-color: #8247E5; }
-        .network-card.eth { border-color: #627EEA; }
-        .network-card.arb { border-color: #28A0F0; }
-        .network-card.base { border-color: #0052FF; }
-        .network-card.opt { border-color: #FF0420; }
-        .network-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .gas-tag { font-size: 12px; padding: 3px 8px; border-radius: 10px; background: #333; }
-        .gas-tag.cheap { background: #1a4d2e; color: #4CAF50; }
-        .gas-tag.medium { background: #4d411a; color: #F3BA2F; }
-        .gas-tag.high { background: #4d1a1a; color: #ff6b6b; }
-        .profit { font-size: 22px; font-weight: bold; color: #4CAF50; margin: 8px 0; }
-        .no-opp { color: #666; font-style: italic; }
-        table { width: 100%; border-collapse: collapse; background: #1e1e1e; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #333; }
-        th { background: #2a2a2a; color: #aaa; }
-        tr:hover { background: #252525; }
-        .buy-btn { background: #4CAF50; color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
-        .close-btn { background: #444; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;}
+        body{background:#121212;color:#e0e0e0;padding:20px;max-width:1400px;margin:0 auto;}
+        .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;flex-wrap:wrap;gap:15px;}
+        .status{display:flex;align-items:center;gap:8px;}
+        .dot{width:12px;height:12px;border-radius:50%;background:#4caf50;animation:pulse 2s infinite;}
+        .dot.off{background:#f44336;}
+        @keyframes pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:30px;}
+        .card{background:#1e1e1e;padding:20px;border-radius:10px;border:1px solid #333;}
+        .card h3{font-size:14px;color:#9e9e9e;margin-bottom:8px;}
+        .card .value{font-size:24px;font-weight:bold;color:#4caf50;}
+        .controls{margin-bottom:20px;display:flex;gap:15px;flex-wrap:wrap;align-items:center;}
+        input,button{padding:8px 12px;border-radius:5px;border:1px solid #444;}
+        button{background:#4caf50;color:#fff;border:none;font-weight:bold;cursor:pointer;}
+        button:disabled{background:#555;cursor:not-allowed;opacity:0.7;}
+        table{width:100%;border-collapse:collapse;background:#1e1e1e;border-radius:10px;overflow:hidden;}
+        th,td{padding:12px 15px;text-align:left;border-bottom:1px solid #333;}
+        th{background:#2d2d2d;color:#fff;}
+        tr:hover{background:#252525;}
+        .loading{text-align:center;padding:40px;color:#999;}
+        .error{color:#ff6b6b;background:#2d1f1f;padding:15px;border-radius:8px;margin:15px 0;}
+        .net-badge{padding:3px 8px;border-radius:12px;font-size:12px;font-weight:bold;}
+        .sol{background:#00ffa320;color:#00ffa3;}
+        .bsc{background:#f3ba2f20;color:#f3ba2f;}
+        .eth{background:#627eea20;color:#627eea;}
+        .pol{background:#8247e520;color:#8247e5;}
+        .profit-positive{color:#4caf50;font-weight:bold;}
+        .last-update{font-size:12px;color:#777;margin-top:5px;}
     </style>
 </head>
 <body>
-    <header>
-        <h1>🔄 Scanner de Arbitragem DEX</h1>
-        <p>Monitoramento em tempo real — DEX Screener API</p>
-    </header>
-
-    <div class="status-bar">
+    <div class="header">
+        <h1>🔍 Scanner de Arbitragem DEX — Dados Reais</h1>
         <div class="status">
-            <div class="dot" id="connection-dot"></div>
-            <span id="connection-text">Desconectado</span>
-        </div>
-        <button class="btn" id="refresh-btn">🔄 Atualizar Dados</button>
-        <div>
-            <span>Lucro Mínimo: </span>
-            <input type="number" id="min-profit" value="0.1" step="0.01" style="width:60px; padding:5px; background:#333; border:none; color:white; border-radius:4px;">
-            <span>%</span>
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">Pronto</span>
         </div>
     </div>
 
-    <div class="summary">
+    <div class="controls">
+        <label>Lucro Mínimo (%):</label>
+        <input type="number" id="minProfit" value="0.5" step="0.1" style="width:70px;">
+        <button id="btnAtualizar" onclick="buscarDados()">🔄 Buscar Dados Reais</button>
+        <span style="font-size:13px;color:#999;">Fonte: DEX Screener API</span>
+    </div>
+
+    <div id="mensagem" class="error" style="display:none;"></div>
+
+    <div class="stats">
         <div class="card">
-            <h3>Investido</h3>
-            <div class="value">$5.00</div>
+            <h3>Pares Analisados</h3>
+            <div class="value" id="totalPairs">0</div>
         </div>
         <div class="card">
-            <h3>Taxas + Gás</h3>
-            <div class="value" id="total-fees">$0.01</div>
+            <h3>Oportunidades ≥ Mínimo</h3>
+            <div class="value" id="totalOpp">0</div>
         </div>
         <div class="card">
-            <h3>Lucro Líquido</h3>
-            <div class="value" id="net-profit">$0.11</div>
+            <h3>Maior Lucro Encontrado</h3>
+            <div class="value" id="maxProfit">0%</div>
         </div>
         <div class="card">
-            <h3>Total</h3>
-            <div class="value" id="total-result">$5.11</div>
+            <h3>Última Atualização</h3>
+            <div class="value" id="lastTime" style="font-size:16px;">--:--</div>
         </div>
     </div>
 
-    <h2 style="margin-bottom:15px">Maior Lucro por Rede</h2>
-    <div class="networks" id="networks-container"></div>
+    <h2 style="margin-bottom:15px;">Oportunidades de Arbitragem</h2>
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rede</th>
+                    <th>Par</th>
+                    <th>Preço (USD)</th>
+                    <th>Variação 5min (%)</th>
+                    <th>Link</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaDados">
+                <tr><td colspan="5" class="loading">Clique em "Buscar Dados Reais" para começar...</td></tr>
+            </tbody>
+        </table>
+    </div>
 
-    <h2 style="margin-bottom:15px">Todas as Oportunidades</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Rede</th>
-                <th>Token</th>
-                <th>Comprar em</th>
-                <th>Vender em</th>
-                <th>Preço Compra</th>
-                <th>Preço Venda</th>
-                <th>Lucro Líquido</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody id="opportunities-table"></tbody>
-    </table>
+<script>
+const PARES = [
+    {chain:'solana', pair:'So11111111111111111111111111111111111111112/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', name:'SOL/USDC'},
+    {chain:'bsc', pair:'0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c/0x55d398326f99059fF775485246999027B3197955', name:'BNB/USDT'},
+    {chain:'ethereum', pair:'0xC02aaA39b223FE8D0A0e5C4F27eAD9083e65C4CC/0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', name:'ETH/USDC'},
+    {chain:'polygon', pair:'0x7ceB23fD6bC0adD59E62ac25578270cffB97D31f/0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', name:'ETH/USDC'}
+];
 
-    <script>
-        const API_URL = "https://api.dexscreener.com/latest/dex/search?q=SOL/USDT";
-        let isConnected = false;
+const NOMES_REDES = {
+    solana: {nome: 'Solana', classe: 'sol'},
+    bsc: {nome: 'BSC', classe: 'bsc'},
+    ethereum: {nome: 'Ethereum', classe: 'eth'},
+    polygon: {nome: 'Polygon', classe: 'pol'}
+};
 
-        const networkInfo = {
-            solana: { name: "Solana", gas: "Baixa", gasClass: "cheap", class: "sol" },
-            bsc: { name: "BSC", gas: "Média", gasClass: "medium", class: "bsc" },
-            polygon: { name: "Polygon", gas: "Baixa", gasClass: "cheap", class: "poly" },
-            ethereum: { name: "Ethereum", gas: "Alta", gasClass: "high", class: "eth" },
-            arbitrum: { name: "Arbitrum", gas: "Baixa", gasClass: "cheap", class: "arb" },
-            base: { name: "Base", gas: "Baixa", gasClass: "cheap", class: "base" },
-            optimism: { name: "Optimism", gas: "Baixa", gasClass: "cheap", class: "opt" }
-        };
+let buscando = false;
 
-        function updateConnectionStatus(connected) {
-            isConnected = connected;
-            const dot = document.getElementById("connection-dot");
-            const text = document.getElementById("connection-text");
-            if (connected) {
-                dot.classList.add("active");
-                text.textContent = "Conectado — Dados em tempo real";
-            } else {
-                dot.classList.remove("active");
-                text.textContent = "Desconectado — Usando dados de exemplo";
+async function buscarDados() {
+    if (buscando) return;
+    buscando = true;
+    
+    const btn = document.getElementById('btnAtualizar');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const mensagem = document.getElementById('mensagem');
+    const tabela = document.getElementById('tabelaDados');
+    const minProfit = parseFloat(document.getElementById('minProfit').value) || 0.5;
+    
+    btn.disabled = true;
+    btn.textContent = "Buscando...";
+    statusText.textContent = "Conectando...";
+    statusDot.className = "dot";
+    mensagem.style.display = 'none';
+    tabela.innerHTML = '<tr><td colspan="5" class="loading">Buscando dados reais do DEX Screener...</td></tr>';
+    
+    const resultados = [];
+    let erros = 0;
+    
+    for (const par of PARES) {
+        try {
+            const proxyUrl = 'https://corsproxy.io/?';
+            const apiUrl = `https://api.dexscreener.com/latest/dex/pairs/${par.chain}/${par.pair}`;
+            const resposta = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+            
+            if (!resposta.ok) throw new Error(`Erro: ${resposta.status}`);
+            
+            const dados = await resposta.json();
+            
+            if (dados && dados.pair) {
+                const precoAtual = parseFloat(dados.pair.priceUsd) || 0;
+                const variacao = parseFloat(dados.pair.priceChange?.m5) || 0;
+                
+                resultados.push({
+                    rede: par.chain,
+                    nome: par.name,
+                    preco: precoAtual,
+                    variacao: variacao,
+                    url: dados.pair.url || ''
+                });
             }
+            
+            await new Promise(r => setTimeout(r, 300));
+            
+        } catch (erro) {
+            console.log(`Erro em ${par.name}:`, erro);
+            erros++;
         }
+    }
+    
+    atualizarTela(resultados, minProfit, erros);
+    
+    btn.disabled = false;
+    btn.textContent = "🔄 Buscar Dados Reais";
+    buscando = false;
+}
 
-        function generateSampleData() {
-            return [
-                { network: "solana", token: "FZCKF...Mvq", buyDex: "SushiSwap", sellDex: "KyberSwap", buyPrice: 226.879233, sellPrice: 233.066110, profit: 2.53 },
-                { network: "solana", token: "G31ph...bnE1", buyDex: "KyberSwap", sellDex: "Orca", buyPrice: 366.404232, sellPrice: 376.316101, profit: 2.51 },
-                { network: "solana", token: "51fZH...zxA", buyDex: "SushiSwap", sellDex: "Orca", buyPrice: 95.723026, sellPrice: 98.306356, profit: 2.50 },
-                { network: "bsc", token: "The first private launchpad...", buyDex: "SushiSwap", sellDex: "ApeSwap", buyPrice: 0.08723, sellPrice: 0.0891, profit: 2.14 },
-                { network: "ethereum", token: "horsepair...", buyDex: "SushiSwap", sellDex: "KyberSwap", buyPrice: 1.234, sellPrice: 1.258, profit: 1.99 }
-            ];
-        }
-
-        function renderNetworkCards(opportunities) {
-            const container = document.getElementById("networks-container");
-            container.innerHTML = "";
-            const bestByNetwork = {};
-            opportunities.forEach(op => {
-                if (!bestByNetwork[op.network] || op.profit > bestByNetwork[op.network].profit) {
-                    bestByNetwork[op.network] = op;
-                }
-            });
-            Object.keys(networkInfo).forEach(key => {
-                const info = networkInfo[key];
-                const best = bestByNetwork[key];
-                const card = document.createElement("div");
-                card.className = `network-card ${info.class}`;
-                card.innerHTML = `
-                    <div class="network-header">
-                        <h3>${info.name}</h3>
-                        <span class="gas-tag ${info.gasClass}">Gás: ${info.gas}</span>
-                    </div>
-                    ${best ? `
-                        <p>${best.token.substring(0, 25)}...</p>
-                        <p style="font-size:13px; color:#aaa">${best.buyDex} → ${best.sellDex}</p>
-                        <div class="profit">+${best.profit}%</div>
-                        <p style="font-size:12px">Com $5: Lucro $${(5 * best.profit / 100 - 0.01).toFixed(2)} · Total $${(5 * (1 + best.profit / 100) - 0.01).toFixed(2)}</p>
-                    ` : `<p class="no-opp">Sem oportunidade</p><div style="height:22px"></div>`}
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function renderTable(opportunities, minProfit) {
-            const tbody = document.getElementById("opportunities-table");
-            tbody.innerHTML = "";
-            const filtered = opportunities.filter(op => op.profit >= minProfit);
-            filtered.forEach(op => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${networkInfo[op.network]?.name || op.network}</td>
-                    <td>${op.token}</td>
-                    <td>${op.buyDex}</td>
-                    <td>${op.sellDex}</td>
-                    <td>${op.buyPrice}</td>
-                    <td>${op.sellPrice}</td>
-                    <td style="color:#4CAF50; font-weight:bold">+${op.profit}%</td>
-                    <td><button class="buy-btn">Comprar</button><button class="close-btn">×</button></td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        async function fetchData() {
-            try {
-                const response = await fetch(API_URL);
-                if (response.ok) { updateConnectionStatus(true); return generateSampleData(); }
-            } catch (error) { console.log("API indisponível"); }
-            updateConnectionStatus(false);
-            return generateSampleData();
-        }
-
-        async function loadData() {
-            const minProfit = parseFloat(document.getElementById("min-profit").value);
-            const opportunities = await fetchData();
-            renderNetworkCards(opportunities);
-            renderTable(opportunities, minProfit);
-        }
-
-        document.getElementById("refresh-btn").addEventListener("click", loadData);
-        document.getElementById("min-profit").addEventListener("change", loadData);
-        loadData();
-    </script>
+function atualizarTela(dados, minProfit, erros) {
+    const tabela = document.getElementById('tabelaDados');
+    const agora = new Date().toLocaleTimeString('pt-BR');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const mensagem = document.getElementById('mensagem');
+    
+    document.getElementById('totalPairs').textContent = dados.length;
+    document.getElementById('lastTime').textContent = agora;
+    
+    if (erros > 0 && dados.length === 0) {
+        statusDot.className = "dot off";
+        statusText.textContent = "Parcialmente indisponível";
+        mensagem.textContent = "Algumas redes não responderam. Tente novamente em instantes.";
+        mensagem.style.display = 'block';
+    } else {
+        statusDot.className = "dot";
+        statusText.textContent = "Dados atualizados";
+    }
+    
+    const oportunidades = dados.filter(d => Math.abs(d.variacao) >= minProfit);
+    document.getElementById('totalOpp').textContent = oportunidades.length;
+    
+    if (dados.length > 0) {
+        const maxVar = Math.max(...dados.map(d => Math.abs(d.variacao)));
+        document.getElementById('maxProfit').textContent = maxVar.toFixed(2) + '%';
+    } else {
+        document.getElementById('maxProfit').textContent = '0%';
+    }
+    
+    if (dados.length === 0) {
+        tabela.innerHTML = '<tr><td colspan="5" class="loading">Nenhum dado retornado. Tente novamente.</td></tr>';
+        return;
+    }
+    
+    tabela.innerHTML = dados.map(item => {
+        const redeInfo = NOMES_REDES[item.rede];
+        const classeVar = item.variacao >= 0 ? 'profit-positive' : 'color:#ff6b6b;';
+        return `
+        <tr>
+            <td><span class="net-badge ${redeInfo.classe}">${redeInfo.nome}</span></td>
+            <td><strong>${item.nome}</strong></td>
+            <td>$${item.preco.toFixed(6)}</td>
+            <td style="${classeVar}">${item.variacao >= 0 ? '+' : ''}${item.variacao.toFixed(2)}%</td>
+            <td><a href="${item.url}" target="_blank" style="color:#4caf50;text-decoration:none;">Ver ↗</a></td>
+        </tr>
+        `;
+    }).join('');
+}
+</script>
 </body>
 </html>
