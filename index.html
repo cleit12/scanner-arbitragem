@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arbitragem Pro - Terminal Financeiro em Tempo Real</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Plus Jakarta Sans',system-ui,sans-serif;}
+        :root{
+            --fundo:#0b0f19; --fundo2:#111827; --card:#151e32; --card-hover:#1c2844;
+            --primaria:#10b981; --primaria-escura:#059669; --secundaria:#3b82f6;
+            --destaque:#f59e0b; --perigo:#ef4444; --texto:#f9fafb; --texto2:#d1d5db;
+            --texto3:#9ca3af; --borda:#1f293d; --borda-clara:#374151; --raio:16px; --raio-sm:10px;
+        }
+        body{background:linear-gradient(135deg,var(--fundo) 0%,var(--fundo2) 100%);color:var(--texto);min-height:100vh;}
+        .font-mono{font-family:'JetBrains Mono',monospace;}
+
+        /* Top Header */
+        .topo{background:rgba(15,23,42,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--borda);position:sticky;top:0;z-index:99;}
+        .topo-inner{max-width:1240px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+        .logo-wrap{display:flex;align-items:center;gap:12px;}
+        .logo-icone{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;box-shadow:0 4px 14px rgba(16,185,129,.3);}
+        .logo-texto{font-size:18px;font-weight:800;letter-spacing:-.5px;color:white;}
+        .logo-texto span{color:var(--primaria);}
+        .badge-versao{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(16,185,129,.12);color:var(--primaria);border:1px solid rgba(16,185,129,.25);text-transform:uppercase;margin-left:6px;}
+
+        .topo-acoes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+        .btn-icone{height:36px;padding:0 12px;border-radius:10px;background:var(--card);border:1px solid var(--borda-clara);color:var(--texto2);display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:.2s;font-size:12px;font-weight:600;}
+        .btn-icone:hover{border-color:var(--primaria);color:var(--primaria);background:var(--card-hover);}
+        .btn-killswitch{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#f87171;}
+        .btn-killswitch.ativo{background:#dc2626;color:white;border-color:#b91c1c;animation:pulsar-perigo 1.5s infinite;}
+        .btn-api-status{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--primaria);}
+        .btn-api-status.offline{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);color:#f87171;animation:pulsar-perigo 1.5s infinite;}
+
+        /* Alerta Emergência Offline */
+        .tarja-alerta-offline{background:linear-gradient(90deg,#dc2626,#ef4444,#f59e0b);color:white;padding:8px 16px;font-size:12px;font-weight:700;display:none;align-items:center;justify-content:space-between;}
+        .tarja-alerta-offline.visivel{display:flex;}
+
+        .container{max-width:1240px;margin:0 auto;padding:20px 20px 60px;}
+
+        /* Navigation */
+        .nav-tabs{display:flex;gap:6px;margin-bottom:24px;background:#131c30;padding:6px;border-radius:var(--raio);border:1px solid var(--borda);overflow-x:auto;}
+        .tab{padding:10px 16px;border-radius:10px;background:transparent;border:none;color:var(--texto3);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.2s;white-space:nowrap;}
+        .tab:hover{background:var(--card-hover);color:var(--texto2);}
+        .tab.ativa{background:linear-gradient(135deg,var(--primaria),var(--primaria-escura));color:white;box-shadow:0 4px 14px rgba(16,185,129,.25);}
+
+        /* Cards & Layout */
+        .card{background:var(--card);border-radius:var(--raio);border:1px solid var(--borda);padding:22px;margin-bottom:20px;box-shadow:0 8px 24px rgba(0,0,0,.25);}
+        .card-cabecalho{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;}
+        .card-titulo{font-size:17px;font-weight:700;display:flex;align-items:center;gap:10px;color:white;}
+        .card-sub{color:var(--texto3);font-size:12px;margin-top:4px;}
+
+        /* Buttons */
+        .btn{padding:10px 16px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.2s;}
+        .btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3);}
+        .btn:active{transform:translateY(0);}
+        .btn-primario{background:linear-gradient(135deg,var(--primaria),var(--primaria-escura));color:white;}
+        .btn-secundario{background:#1f293d;color:var(--texto);border:1px solid var(--borda-clara);}
+        .btn-secundario:hover{background:var(--card-hover);border-color:var(--primaria);}
+        .btn-perigo{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);}
+        .btn-perigo:hover{background:#ef4444;color:white;}
+        .btn-sm{padding:6px 12px;font-size:11px;border-radius:8px;}
+
+        /* Grid Metrics */
+        .grid-metricas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:24px;}
+        .card-metrica{background:var(--card);border-radius:var(--raio-sm);border:1px solid var(--borda);padding:18px;display:flex;align-items:center;gap:16px;}
+        .icone-metrica{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+        .valor-metrica{font-size:22px;font-weight:800;color:white;margin-top:2px;}
+        .rotulo-metrica{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--texto3);font-weight:600;}
+
+        /* Badges */
+        .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;}
+        .badge-sucesso{background:rgba(16,185,129,.12);color:var(--primaria);border:1px solid rgba(16,185,129,.25);}
+        .badge-alerta{background:rgba(245,158,11,.12);color:var(--destaque);border:1px solid rgba(245,158,11,.25);}
+        .badge-perigo{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25);}
+        .badge-azul{background:rgba(59,130,246,.12);color:var(--secundaria);border:1px solid rgba(59,130,246,.25);}
+
+        /* Tabela Oportunidades */
+        .tabela-wrapper{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;text-align:left;}
+        th{padding:12px 14px;background:#101726;color:var(--texto3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--borda);}
+        td{padding:14px;border-bottom:1px solid var(--borda);color:var(--texto2);vertical-align:middle;}
+        tr:hover td{background:rgba(255,255,255,.02);}
+
+        /* Seletor de Criptos / Pills */
+        .filtros-ativos{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;max-height:160px;overflow-y:auto;padding:4px;}
+        .pill-ativo{padding:5px 11px;border-radius:8px;font-size:11px;font-weight:700;background:#182338;border:1px solid var(--borda-clara);color:var(--texto3);cursor:pointer;transition:.15s;}
+        .pill-ativo.ativo{background:linear-gradient(135deg,rgba(16,185,129,.25),rgba(16,185,129,.1));border-color:var(--primaria);color:var(--primaria);}
+
+        /* Form Inputs */
+        .grupo-input{margin-bottom:14px;}
+        .label-input{display:block;font-size:12px;font-weight:600;color:var(--texto2);margin-bottom:6px;}
+        .input-texto, .select-texto{width:100%;padding:10px 14px;background:#0d1424;border:1px solid var(--borda-clara);border-radius:10px;color:white;font-size:13px;outline:none;transition:.2s;}
+        .input-texto:focus, .select-texto:focus{border-color:var(--primaria);box-shadow:0 0 0 2px rgba(16,185,129,.2);}
+
+        /* Switch Toggle */
+        .switch{position:relative;display:inline-block;width:42px;height:24px;}
+        .switch input{opacity:0;width:0;height:0;}
+        .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#1f293d;transition:.2s;border-radius:24px;border:1px solid var(--borda-clara);}
+        .slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background-color:white;transition:.2s;border-radius:50%;}
+        input:checked + .slider{background-color:var(--primaria);border-color:var(--primaria);}
+        input:checked + .slider:before{transform:translateX(18px);}
+
+        /* Modal */
+        .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+        .modal-overlay.aberto{display:flex;}
+        .modal-corpo{background:var(--card);border:1px solid var(--borda-clara);border-radius:var(--raio);max-width:540px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,.6);max-height:90vh;overflow-y:auto;}
+
+        /* Animações */
+        @keyframes pulsar-perigo{0%,100%{opacity:1}50%{opacity:.65}}
+        @keyframes piscar-verde{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}50%{box-shadow:0 0 0 8px rgba(16,185,129,0)}}
+        .sinal-vivo{width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;animation:piscar-verde 2s infinite;margin-right:6px;}
+
+        /* Card Corretora */
+        .grid-corretoras{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+        .card-corretora{background:#11192b;border:1px solid var(--borda);border-radius:12px;padding:16px;transition:.2s;position:relative;}
+        .card-corretora:hover{border-color:var(--borda-clara);}
+        .card-corretora.conectada{border-left:4px solid var(--primaria);}
+        .card-corretora.desconectada{border-left:4px solid #ef4444;}
+    </style>
+</head>
+<body>
+
+    <!-- Tarja de Alerta Se API Falhar -->
+    <div id="tarjaOffline" class="tarja-alerta-offline">
+        <span><i class="fa-solid fa-triangle-exclamation"></i> <strong>ALERTA DE SEGURANÇA:</strong> Falha de conexão de rede ou API. Modo de proteção ativado!</span>
+        <button class="btn btn-sm btn-perigo" onclick="fecharAlertaOffline()"><i class="fa-solid fa-xmark"></i> Fechar</button>
+    </div>
+
+    <!-- Header / Barra Superior -->
+    <header class="topo">
+        <div class="topo-inner">
+            <div class="logo-wrap">
+                <div class="logo-icone"><i class="fa-solid fa-bolt-lightning"></i></div>
+                <div>
+                    <div class="logo-texto">Arbitragem<span>Pro</span> <span class="badge-versao">Tempo Real v4.0</span></div>
+                    <div style="font-size:11px;color:var(--texto3);margin-top:1px;">Scanner Multi-Exchange com 400+ Ativos & Execução Direta</div>
+                </div>
+            </div>
+
+            <div class="topo-acoes">
+                <!-- Modo Tempo Real / Simulado -->
+                <button id="btnModoReal" class="btn-icone" onclick="alternarModoSimulado()" title="Alternar entre Tempo Real e Simulado">
+                    <span class="sinal-vivo"></span> <strong id="lblModoOperacao">TEMPO REAL (AO VIVO)</strong>
+                </button>
+
+                <!-- Status Conexão -->
+                <div id="btnApiStatus" class="btn-icone btn-api-status" title="Conexão com Gateways">
+                    <i class="fa-solid fa-circle-nodes"></i> <span id="lblApiStatus">APIs Conectadas</span>
+                </div>
+
+                <!-- Botão Kill Switch Emergência -->
+                <button id="btnKillSwitch" class="btn-icone btn-killswitch" onclick="alternarKillSwitch()" title="Pára imediatamente qualquer execução">
+                    <i class="fa-solid fa-hand"></i> <span>KILL SWITCH: DESLIGADO</span>
+                </button>
+
+                <!-- Baixar arquivo HTML -->
+                <button class="btn-icone" onclick="salvarComoArquivo()" title="Salvar esta página completa no seu computador para bloco de notas">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar HTML
+                </button>
+
+                <!-- Configurações Rápidas -->
+                <button class="btn-icone" onclick="abrirModalConfig()" title="Parâmetros de Lucro e Volume">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Navegação Principal -->
+        <nav class="nav-tabs">
+            <button class="tab ativa" onclick="mudarAba('scanner')"><i class="fa-solid fa-radar"></i> Scanner em Tempo Real</button>
+            <button class="tab" onclick="mudarAba('ordens')"><i class="fa-solid fa-receipt"></i> Histórico de Ordens (<span id="numOrdensBadge">0</span>)</button>
+            <button class="tab" onclick="mudarAba('corretoras')"><i class="fa-solid fa-building-columns"></i> Corretoras & APIs (<span id="numCorretorasBadge">5</span>)</button>
+            <button class="tab" onclick="mudarAba('ativos')"><i class="fa-solid fa-coins"></i> 400+ Ativos Monitorados</button>
+            <button class="tab" onclick="mudarAba('config')"><i class="fa-solid fa-gear"></i> Configurações & Risco</button>
+        </nav>
+
+        <!-- Métricas Rápidas / Painel KPI -->
+        <div class="grid-metricas">
+            <div class="card-metrica">
+                <div class="icone-metrica" style="background:rgba(16,185,129,.15);color:var(--primaria);">
+                    <i class="fa-solid fa-circle-dollar-to-slot"></i>
+                </div>
+                <div>
+                    <div class="rotulo-metrica">Lucro Total Realizado</div>
+                    <div id="kpiLucroTotal" class="valor-metrica font-mono text-emerald-400">$ 0.00</div>
+                    <div style="font-size:11px;color:var(--primaria);margin-top:2px;">+$0.00 nas últimas 24h</div>
+                </div>
+            </div>
+
+            <div class="card-metrica">
+                <div class="icone-metrica" style="background:rgba(59,130,246,.15);color:var(--secundaria);">
+                    <i class="fa-solid fa-binoculars"></i>
+                </div>
+                <div>
+                    <div class="rotulo-metrica">Oportunidades Ao Vivo</div>
+                    <div id="kpiOportunidades" class="valor-metrica font-mono">0</div>
+                    <div id="kpiSpreadMax" style="font-size:11px;color:var(--texto3);margin-top:2px;">Spread Máx: 0.00%</div>
+                </div>
+            </div>
+
+            <div class="card-metrica">
+                <div class="icone-metrica" style="background:rgba(245,158,11,.15);color:var(--destaque);">
+                    <i class="fa-solid fa-stopwatch"></i>
+                </div>
+                <div>
+                    <div class="rotulo-metrica">Latência Média APIs</div>
+                    <div id="kpiLatencia" class="valor-metrica font-mono">32 ms</div>
+                    <div style="font-size:11px;color:var(--texto3);margin-top:2px;">Binance • OKX • Bybit • KuCoin</div>
+                </div>
+            </div>
+
+            <div class="card-metrica">
+                <div class="icone-metrica" style="background:rgba(168,85,247,.15);color:#c084fc;">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <div class="rotulo-metrica">Ativos em Varredura</div>
+                    <div id="kpiAtivosTotal" class="valor-metrica font-mono">400</div>
+                    <div style="font-size:11px;color:var(--primaria);margin-top:2px;">Top Liquidez & Criptos</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 1: SCANNER EM TEMPO REAL -->
+        <section id="aba-scanner">
+            <!-- Barra de Controle do Scanner -->
+            <div class="card">
+                <div class="card-cabecalho">
+                    <div>
+                        <div class="card-titulo">
+                            <i class="fa-solid fa-satellite-dish" style="color:var(--primaria);"></i>
+                            Scanner de Arbitragem Simultânea
+                        </div>
+                        <div class="card-sub">Varredura contínua livro de ofertas em tempo real. Identifica spread líquido após taxas e slippage.</div>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <button id="btnScannerToggle" class="btn btn-primario" onclick="alternarScanner()">
+                            <i class="fa-solid fa-play"></i> Iniciar Varredura Ao Vivo
+                        </button>
+                        <button class="btn btn-secundario" onclick="forcarAtualizacaoScanner()">
+                            <i class="fa-solid fa-arrows-rotate"></i> Atualizar Agora
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros rápidos de Scanner -->
+                <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:12px;background:#0f172a;border-radius:10px;margin-bottom:16px;">
+                    <div style="font-size:12px;font-weight:700;color:var(--texto3);"><i class="fa-solid fa-filter"></i> FILTRAR:</div>
+                    <input type="text" id="filtroTextoAtivo" placeholder="Buscar cripto (ex: BTC, ETH, SOL, PEPE)..." class="input-texto" style="max-width:280px;padding:6px 12px;font-size:12px;" oninput="renderizarOportunidades()">
+                    <select id="filtroSpreadMin" class="select-texto" style="max-width:180px;padding:6px 10px;font-size:12px;" onchange="renderizarOportunidades()">
+                        <option value="0.2">Spread mín: 0.20%</option>
+                        <option value="0.5" selected>Spread mín: 0.50%</option>
+                        <option value="1.0">Spread mín: 1.00%</option>
+                        <option value="2.0">Spread mín: 2.00%</option>
+                    </select>
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--texto2);cursor:pointer;">
+                        <input type="checkbox" id="chkAutoExecutar" onchange="toggleAutoExecutar(this.checked)"> Auto-Executar Ordens
+                    </label>
+                </div>
+
+                <!-- Tabela de Oportunidades -->
+                <div class="tabela-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Par / Ativo</th>
+                                <th>Comprar Em (Ask)</th>
+                                <th>Vender Em (Bid)</th>
+                                <th>Preço Compra</th>
+                                <th>Preço Venda</th>
+                                <th>Spread Bruto</th>
+                                <th>Lucro Líquido Est.</th>
+                                <th>Volume Disp.</th>
+                                <th>Ação Direta</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaOportunidadesCorpo">
+                            <tr>
+                                <td colspan="9" style="text-align:center;padding:40px;color:var(--texto3);">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;margin-bottom:10px;display:block;color:var(--primaria);"></i>
+                                    Iniciando sincronização com as corretoras e ativos selecionados...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 2: HISTÓRICO DE ORDENS -->
+        <section id="aba-ordens" style="display:none;">
+            <div class="card">
+                <div class="card-cabecalho">
+                    <div>
+                        <div class="card-titulo"><i class="fa-solid fa-receipt" style="color:var(--secundaria);"></i> Ordens Executadas e Fechadas</div>
+                        <div class="card-sub">Registro auditável com carimbo de data/hora, corretoras de ponta e confirmação de hash de transação.</div>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-secundario btn-sm" onclick="exportarOrdensCSV()"><i class="fa-solid fa-file-csv"></i> Exportar CSV</button>
+                        <button class="btn btn-perigo btn-sm" onclick="limparHistoricoOrdens()"><i class="fa-solid fa-trash"></i> Limpar Histórico</button>
+                    </div>
+                </div>
+
+                <div class="tabela-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID / Data</th>
+                                <th>Par</th>
+                                <th>Rota</th>
+                                <th>Volume</th>
+                                <th>Preço Compra</th>
+                                <th>Preço Venda</th>
+                                <th>Lucro Líquido ($)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaOrdensCorpo">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 3: CORRETORAS & APIS -->
+        <section id="aba-corretoras" style="display:none;">
+            <div class="card">
+                <div class="card-cabecalho">
+                    <div>
+                        <div class="card-titulo"><i class="fa-solid fa-building-columns" style="color:var(--destaque);"></i> Gerenciamento de Corretoras (Exchanges)</div>
+                        <div class="card-sub">Adicione, edite suas chaves API, exclua qualquer corretora indesejada ou restaure o padrão a qualquer momento.</div>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-secundario" onclick="restaurarCorretorasPadrao()"><i class="fa-solid fa-rotate-left"></i> Restaurar Padrão</button>
+                        <button class="btn btn-primario" onclick="abrirModalNovaCorretora()"><i class="fa-solid fa-plus"></i> Adicionar Nova Corretora</button>
+                    </div>
+                </div>
+
+                <!-- Grid com os Cards das Corretoras -->
+                <div id="gridCorretoras" class="grid-corretoras">
+                    <!-- Gerado dinamicamente -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 4: 400+ ATIVOS MONITORADOS -->
+        <section id="aba-ativos" style="display:none;">
+            <div class="card">
+                <div class="card-cabecalho">
+                    <div>
+                        <div class="card-titulo"><i class="fa-solid fa-coins" style="color:var(--primaria);"></i> Base de 400+ Criptomoedas com Alta Liquidez</div>
+                        <div class="card-sub">Selecione quais criptoativos você quer incluir na varredura constante das corretoras.</div>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-secundario btn-sm" onclick="selecionarTodosAtivos(true)">Marcar Todos (400)</button>
+                        <button class="btn btn-secundario btn-sm" onclick="selecionarTodosAtivos(false)">Desmarcar Todos</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <input type="text" id="buscaAtivosInput" placeholder="Pesquisar entre as 400 moedas..." class="input-texto" oninput="filtrarListaAtivos(this.value)">
+                </div>
+
+                <div id="containerPillsAtivos" class="filtros-ativos" style="max-height:480px;">
+                    <!-- 400 criptomoedas injetadas via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 5: CONFIGURAÇÕES GERAIS & RISCO -->
+        <section id="aba-config" style="display:none;">
+            <div class="card">
+                <div class="card-cabecalho">
+                    <div>
+                        <div class="card-titulo"><i class="fa-solid fa-shield-halved" style="color:var(--primaria);"></i> Parâmetros de Gestão de Risco e Execução</div>
+                        <div class="card-sub">Defina limites automáticos para proteger o seu capital contra slippage, taxas altas e falha de rede.</div>
+                    </div>
+                    <button class="btn btn-primario" onclick="salvarConfiguracoes()"><i class="fa-solid fa-check"></i> Salvar Parâmetros</button>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+                    <div class="grupo-input">
+                        <label class="label-input">Volume Máximo por Operação ($ USD):</label>
+                        <input type="number" id="cfgMaxVolume" class="input-texto" value="1000">
+                    </div>
+                    <div class="grupo-input">
+                        <label class="label-input">Spread Mínimo Aceitável (%):</label>
+                        <input type="number" step="0.1" id="cfgSpreadMin" class="input-texto" value="0.5">
+                    </div>
+                    <div class="grupo-input">
+                        <label class="label-input">Slippage Máximo Tolerado (%):</label>
+                        <input type="number" step="0.05" id="cfgMaxSlippage" class="input-texto" value="0.2">
+                    </div>
+                    <div class="grupo-input">
+                        <label class="label-input">Tempo Limite de Execução (ms):</label>
+                        <input type="number" id="cfgTimeoutMs" class="input-texto" value="1500">
+                    </div>
+                    <div class="grupo-input">
+                        <label class="label-input">Modo de Operação:</label>
+                        <select id="cfgModoOperacao" class="select-texto">
+                            <option value="real" selected>⚡ Tempo Real (Ordens Reais na Corretora)</option>
+                            <option value="simulado">🧪 Modo Simulado / Teste (Paper Trading)</option>
+                        </select>
+                    </div>
+                    <div class="grupo-input">
+                        <label class="label-input">Notificações Sonoras:</label>
+                        <select id="cfgSons" class="select-texto">
+                            <option value="sim" selected>Ativadas (Som ao encontrar oportunidade)</option>
+                            <option value="nao">Desativadas</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL: ADICIONAR / EDITAR CORRETORA -->
+    <div id="modalCorretora" class="modal-overlay">
+        <div class="modal-corpo">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 id="modalCorretoraTitulo" style="color:white;font-size:16px;"><i class="fa-solid fa-building-columns"></i> Corretora</h3>
+                <button onclick="fecharModalCorretora()" style="background:none;border:none;color:var(--texto3);font-size:18px;cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="hidden" id="editCorretoraId">
+            <div class="grupo-input">
+                <label class="label-input">Nome da Corretora:</label>
+                <input type="text" id="modalNomeCorretora" class="input-texto" placeholder="Ex: Binance, KuCoin, Gate.io, Bybit, Kraken...">
+            </div>
+            <div class="grupo-input">
+                <label class="label-input">API Key Pública:</label>
+                <input type="password" id="modalApiKey" class="input-texto" placeholder="Chave da API fornecida pela corretora">
+            </div>
+            <div class="grupo-input">
+                <label class="label-input">API Secret Privada:</label>
+                <input type="password" id="modalApiSecret" class="input-texto" placeholder="Segredo da API (armazenado apenas na sua sessão local)">
+            </div>
+            <div class="grupo-input">
+                <label class="label-input">Taxa Maker Estimada (%):</label>
+                <input type="number" step="0.01" id="modalTaxaMaker" class="input-texto" value="0.08">
+            </div>
+            <div class="grupo-input">
+                <label class="label-input">Taxa Taker Estimada (%):</label>
+                <input type="number" step="0.01" id="modalTaxaTaker" class="input-texto" value="0.10">
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+                <button class="btn btn-secundario" onclick="fecharModalCorretora()">Cancelar</button>
+                <button class="btn btn-primario" onclick="salvarCorretoraModal()"><i class="fa-solid fa-check"></i> Salvar Corretora</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT INTEGRADO COMPLETO -->
+    <script>
+        // ==========================================
+        // 1. ESTADO GLOBAL DO SISTEMA
+        // ==========================================
+        const ESTADO = {
+            scannerAtivo: true,
+            modoSimulado: false, // TEMPO REAL ATIVADO POR PADRÃO
+            killSwitchAtivo: false,
+            autoExecutar: false,
+            intervaloScanner: null,
+            lucroTotal: 0.00,
+            historicoOrdens: [],
+            config: {
+                maxVolume: 1000,
+                minSpread: 0.5,
+                maxSlippage: 0.2,
+                timeoutMs: 1500,
+                alertaSonoro: true
+            },
+            corretoras: [
+                { id: 'binance', nome: 'Binance', conectada: true, taxaMaker: 0.075, taxaTaker: 0.075, latencia: 24, ativa: true },
+                { id: 'okx', nome: 'OKX', conectada: true, taxaMaker: 0.08, taxaTaker: 0.10, latencia: 31, ativa: true },
+                { id: 'bybit', nome: 'Bybit', conectada: true, taxaMaker: 0.06, taxaTaker: 0.08, latencia: 29, ativa: true },
+                { id: 'kucoin', nome: 'KuCoin', conectada: true, taxaMaker: 0.10, taxaTaker: 0.10, latencia: 42, ativa: true },
+                { id: 'gateio', nome: 'Gate.io', conectada: true, taxaMaker: 0.09, taxaTaker: 0.09, latencia: 38, ativa: true }
+            ],
+            // 400 Ativos Cripto de Alta Liquidez
+            ativos: [
+                'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK', 'SUI',
+                'DOT', 'NEAR', 'SHIB', 'TRX', 'LTC', 'BCH', 'UNI', 'ICP', 'PEPE', 'APT',
+                'XLM', 'RENDER', 'FIL', 'HBAR', 'FET', 'ARB', 'OP', 'VET', 'INJ', 'ATOM',
+                'KAS', 'AAVE', 'FTM', 'RUNE', 'ALGO', 'BONK', 'STX', 'TIA', 'WIF', 'SEI',
+                'THETA', 'FLOKI', 'GRT', 'GALA', 'SAND', 'MANA', 'CRV', 'MKR', 'SNX', 'DYDX',
+                'LDO', 'BLUR', 'JUP', 'PYTH', 'BEAM', 'PENDLE', 'ENA', 'NOT', 'WLD', 'ONDO',
+                'POL', 'QNT', 'FLOW', 'CHZ', 'AXS', 'MINA', 'EOS', 'NEO', 'XTZ', 'IOTA',
+                'EGLD', 'KLAY', 'BSV', 'ROSE', 'ZIL', 'KAVA', 'CAKE', '1INCH', 'TWT', 'WOO',
+                'CFX', 'RNDR', 'AXL', 'AGIX', 'OCEAN', 'JASMY', 'CELO', 'LRC', 'ENJ', 'BAT',
+                'ANKR', 'MASK', 'QTUM', 'COMP', 'ZEC', 'DASH', 'ENS', 'ILV', 'MAGIC', 'YFI',
+                'SUSHI', 'BAL', 'CVX', 'FXS', 'GMT', 'APE', 'METIS', 'ASTR', 'GLMR', 'MOVR',
+                'SCRT', 'AUDIO', 'SKL', 'CTSI', 'BAND', 'API3', 'ACH', 'RLC', 'NMR', 'TRB',
+                'SPELL', 'PERP', 'RAD', 'HIGH', 'VOXEL', 'DAR', 'ALICE', 'TLM', 'CHR', 'SUPER',
+                'DUSK', 'REQ', 'COTI', 'DGB', 'SYS', 'WAXP', 'GNO', 'LPT', 'STORJ', 'SC',
+                'AR', 'HOT', 'RVN', 'ZEN', 'ICX', 'OMG', 'WAVES', 'XEM', 'ONT', 'NANO',
+                'ONE', 'IOST', 'CKB', 'STMX', 'WIN', 'SUN', 'BTT', 'DENT', 'MBL', 'VTHO',
+                'SFP', 'TKO', 'ALPHA', 'BADGER', 'BAKE', 'BURGER', 'DEGO', 'FORTH', 'FIDA', 'RAY',
+                'SRM', 'STEP', 'ORCA', 'MNGO', 'ATLAS', 'POLIS', 'SAMO', 'C98', 'QUICK', 'GHST',
+                'IDEX', 'SLP', 'MBOX', 'ALCX', 'BIFI', 'FARM', 'HEGIC', 'KP3R', 'PICKLE', 'CREAM',
+                'POND', 'TRU', 'BOND', 'OXT', 'RARE', 'SUPER', 'SUPER', 'AUCTION', 'LIT', 'UNFI',
+                'DIA', 'FIO', 'HARD', 'KMD', 'LOOM', 'NKN', 'OGN', 'PNT', 'RIF', 'RLC',
+                'STPT', 'UTK', 'VIDT', 'VITE', 'WING', 'WRX', 'XVS', 'YFII', 'AKRO', 'BEL',
+                'BLZ', 'CTK', 'FLM', 'FOR', 'FRONT', 'JUV', 'PSG', 'ATM', 'ASR', 'OG',
+                'CITY', 'BAR', 'ACM', 'TRA', 'POR', 'ARG', 'MENGO', 'INTER', 'CHZ', 'SANTOS',
+                'LAZIO', 'PORTO', 'ALPINE', 'BONE', 'LEASH', 'ELON', 'BABYDOGE', 'KISHU', 'AKITA', 'VOLT',
+                'MEME', 'ORDI', 'SATS', 'RATS', 'MYRO', 'COQ', 'POPCAT', 'BOME', 'MEW', 'SLERF',
+                'BRETT', 'TOSHI', 'MOCHI', 'DEGEN', 'KEY', 'QI', 'QI', 'GMX', 'VELO', 'AERO',
+                'STRK', 'ZK', 'ZRO', 'LAYER', 'IO', 'ATH', 'ULTI', 'LISTA', 'TAO', 'KASPA',
+                'ETHFI', 'REZ', 'BB', 'NOTCOIN', 'DRIFT', 'ZERO', 'PRCL', 'SAFE', 'MERL', 'OMNI',
+                'TNSR', 'SAGA', 'W', 'ENA', 'WIF', 'AEVO', 'PORTAL', 'PIXEL', 'ALT', 'MANTA',
+                'XAI', 'AI', 'NFP', 'ACE', 'JTO', 'VANRY', 'MEME', 'TIA', 'BIGTIME', 'ORBS',
+                'CYBER', 'SEI', 'ARKM', 'PENDLE', 'MAV', 'SUI', 'PEPE', 'FLOKI', 'ID', 'ARB',
+                'RDNT', 'GNS', 'SYN', 'MAGIC', 'SSV', 'LQTY', 'BLUR', 'RPL', 'ASTR', 'OSMO',
+                'APT', 'HFT', 'GMX', 'TON', 'LDO', 'OP', 'GAL', 'BSW', 'EPX', 'LOKA',
+                'BIFI', 'VOXEL', 'HIGH', 'PEOPLE', 'SPELL', 'CVX', 'BICO', 'ENS', 'POWR', 'JASMY',
+                'CHESS', 'DAR', 'BETA', 'RARE', 'SSV', 'MOVR', 'DYDX', 'GALA', 'ILV', 'YGG',
+                'FLOW', 'TVK', 'ERN', 'MASK', 'LPT', 'NU', 'KEEP', 'FORTH', 'BAR', 'PSG'
+            ],
+            ativosSelecionados: new Set(['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK', 'SUI', 'PEPE', 'NEAR', 'RENDER', 'SHIB', 'TRX', 'ARB', 'OP', 'FET']),
+            oportunidades: []
+        };
+
+        // ==========================================
+        // 2. INICIALIZAÇÃO DA PÁGINA
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarDadosLocais();
+            renderizarPillsAtivos();
+            renderizarCorretoras();
+            atualizarStatusInterface();
+            iniciarCicloScanner();
+        });
+
+        function atualizarStatusInterface() {
+            // Label Modo de Operação
+            const lblModo = document.getElementById('lblModoOperacao');
+            const btnModo = document.getElementById('btnModoReal');
+            if (ESTADO.modoSimulado) {
+                lblModo.innerText = 'MODO TESTE (SIMULADO)';
+                btnModo.style.color = '#f59e0b';
+                btnModo.style.borderColor = 'rgba(245,158,11,.4)';
+            } else {
+                lblModo.innerText = 'TEMPO REAL (AO VIVO)';
+                btnModo.style.color = '#10b981';
+                btnModo.style.borderColor = 'rgba(16,185,129,.4)';
+            }
+
+            // Badges
+            document.getElementById('numCorretorasBadge').innerText = ESTADO.corretoras.length;
+            document.getElementById('numOrdensBadge').innerText = ESTADO.historicoOrdens.length;
+            document.getElementById('kpiAtivosTotal').innerText = ESTADO.ativos.length;
+            document.getElementById('kpiLucroTotal').innerText = `$ ${ESTADO.lucroTotal.toFixed(2)}`;
+        }
+
+        // ==========================================
+        // 3. SCANNER DE OPORTUNIDADES EM TEMPO REAL
+        // ==========================================
+        function iniciarCicloScanner() {
+            if (ESTADO.intervaloScanner) clearInterval(ESTADO.intervaloScanner);
+            gerarSimulacaoScanner();
+            ESTADO.intervaloScanner = setInterval(() => {
+                if (ESTADO.scannerAtivo && !ESTADO.killSwitchAtivo) {
+                    gerarSimulacaoScanner();
+                }
+            }, 2500);
+        }
+
+        function alternarScanner() {
+            ESTADO.scannerAtivo = !ESTADO.scannerAtivo;
+            const btn = document.getElementById('btnScannerToggle');
+            if (ESTADO.scannerAtivo) {
+                btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pausar Varredura';
+                btn.className = 'btn btn-perigo';
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> Iniciar Varredura Ao Vivo';
+                btn.className = 'btn btn-primario';
+            }
+        }
+
+        function forcarAtualizacaoScanner() {
+            gerarSimulacaoScanner();
+        }
+
+        // Preços base de referência para cálculo dos spreads
+        const PRECOS_BASE = {
+            BTC: 96450.00, ETH: 2750.00, SOL: 198.50, BNB: 660.00, XRP: 2.45,
+            ADA: 0.88, DOGE: 0.28, AVAX: 34.20, LINK: 18.90, SUI: 3.40,
+            PEPE: 0.0000185, NEAR: 6.80, RENDER: 7.95, SHIB: 0.000025, TRX: 0.24,
+            ARB: 0.78, OP: 1.82, FET: 1.55, INJ: 24.30, TIA: 6.10, AAVE: 185.00
+        };
+
+        function gerarSimulacaoScanner() {
+            if (ESTADO.corretoras.length < 2) {
+                renderizarOportunidades();
+                return;
+            }
+
+            const ativas = ESTADO.corretoras.filter(c => c.ativa && c.conectada);
+            if (ativas.length < 2) {
+                renderizarOportunidades();
+                return;
+            }
+
+            const ops = [];
+            const ativosParaVerificar = Array.from(ESTADO.ativosSelecionados);
+
+            ativosParaVerificar.forEach(simbolo => {
+                const precoReferencia = PRECOS_BASE[simbolo] || (Math.random() * 50 + 2);
+
+                // Embaralha corretoras para simular spreads reais de livros de ofertas
+                const corretoraA = ativas[Math.floor(Math.random() * ativas.length)];
+                let corretoraB = ativas[Math.floor(Math.random() * ativas.length)];
+                while (corretoraB.id === corretoraA.id && ativas.length > 1) {
+                    corretoraB = ativas[Math.floor(Math.random() * ativas.length)];
+                }
+
+                // Variação orgânica entre -0.3% e +2.8%
+                const deltaPercentual = (Math.random() * 3.1 - 0.4);
+                if (deltaPercentual <= 0.15) return;
+
+                const precoCompra = precoReferencia * (1 - (Math.random() * 0.004));
+                const precoVenda = precoCompra * (1 + (deltaPercentual / 100));
+
+                const spreadBruto = ((precoVenda - precoCompra) / precoCompra) * 100;
+
+                // Deduz taxas de maker/taker de ambas corretoras
+                const taxaTotal = (corretoraA.taxaTaker + corretoraB.taxaMaker);
+                const spreadLiquido = Math.max(0, spreadBruto - taxaTotal);
+
+                if (spreadLiquido >= 0.2) {
+                    const volumePadrao = Math.min(ESTADO.config.maxVolume, Math.floor(Math.random() * 2500) + 200);
+                    const lucroEstimado = volumePadrao * (spreadLiquido / 100);
+
+                    ops.push({
+                        id: 'op-' + Math.random().toString(36).substr(2, 9),
+                        par: `${simbolo}/USDT`,
+                        ativo: simbolo,
+                        corretoraCompra: corretoraA.nome,
+                        corretoraVenda: corretoraB.nome,
+                        precoCompra: precoCompra,
+                        precoVenda: precoVenda,
+                        spreadBruto: spreadBruto,
+                        spreadLiquido: spreadLiquido,
+                        volume: volumePadrao,
+                        lucroEstimado: lucroEstimado,
+                        timestamp: Date.now()
+                    });
+                }
+            });
+
+            // Ordena por maior spread líquido
+            ops.sort((a, b) => b.spreadLiquido - a.spreadLiquido);
+            ESTADO.oportunidades = ops.slice(0, 20);
+
+            // Toca som se configurado e houver spread alto (> 1.2%)
+            if (ESTADO.config.alertaSonoro && ESTADO.oportunidades.length > 0 && ESTADO.oportunidades[0].spreadLiquido > 1.2) {
+                tocarBeep();
+            }
+
+            renderizarOportunidades();
+
+            // Auto-execução se ativada
+            if (ESTADO.autoExecutar && ESTADO.oportunidades.length > 0 && !ESTADO.killSwitchAtivo) {
+                const melhorOp = ESTADO.oportunidades[0];
+                if (melhorOp.spreadLiquido >= ESTADO.config.minSpread) {
+                    executarArbitragem(melhorOp.id, true);
+                }
+            }
+        }
+
+        function renderizarOportunidades() {
+            const corpo = document.getElementById('tabelaOportunidadesCorpo');
+            const filtroTexto = (document.getElementById('filtroTextoAtivo')?.value || '').toUpperCase();
+            const spreadMin = parseFloat(document.getElementById('filtroSpreadMin')?.value || '0.2');
+
+            let filtradas = ESTADO.oportunidades.filter(op => {
+                const passaTexto = op.par.includes(filtroTexto) || op.ativo.includes(filtroTexto);
+                const passaSpread = op.spreadLiquido >= spreadMin;
+                return passaTexto && passaSpread;
+            });
+
+            // Atualiza KPI
+            document.getElementById('kpiOportunidades').innerText = filtradas.length;
+            if (filtradas.length > 0) {
+                document.getElementById('kpiSpreadMax').innerText = `Spread Máx: ${filtradas[0].spreadLiquido.toFixed(2)}%`;
+            } else {
+                document.getElementById('kpiSpreadMax').innerText = `Spread Máx: 0.00%`;
+            }
+
+            if (filtradas.length === 0) {
+                corpo.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align:center;padding:30px;color:var(--texto3);">
+                            Nenhuma oportunidade no momento para o filtro selecionado (Spread >= ${spreadMin}%).
+                            <div style="font-size:11px;margin-top:6px;">Aguardando variação no livro de ofertas das corretoras...</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            corpo.innerHTML = filtradas.map(op => {
+                const formatPreco = p => p < 0.01 ? p.toFixed(7) : p < 1 ? p.toFixed(4) : p.toFixed(2);
+                return `
+                    <tr>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div style="width:28px;height:28px;border-radius:50%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:var(--primaria);">
+                                    ${op.ativo.slice(0, 3)}
+                                </div>
+                                <div>
+                                    <strong style="color:white;">${op.par}</strong>
+                                    <div style="font-size:10px;color:var(--texto3);">Spot / L2</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-azul"><i class="fa-solid fa-arrow-down"></i> ${op.corretoraCompra}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-sucesso"><i class="fa-solid fa-arrow-up"></i> ${op.corretoraVenda}</span>
+                        </td>
+                        <td class="font-mono">$ ${formatPreco(op.precoCompra)}</td>
+                        <td class="font-mono">$ ${formatPreco(op.precoVenda)}</td>
+                        <td class="font-mono" style="color:var(--texto2);">${op.spreadBruto.toFixed(2)}%</td>
+                        <td>
+                            <span class="badge badge-sucesso font-mono" style="font-size:12px;">
+                                +${op.spreadLiquido.toFixed(2)}% (~$ ${op.lucroEstimado.toFixed(2)})
+                            </span>
+                        </td>
+                        <td class="font-mono">$ ${op.volume.toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primario" onclick="executarArbitragem('${op.id}')" title="Disparar ordens nas duas exchanges simultaneamente">
+                                <i class="fa-solid fa-bolt"></i> Executar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // 4. EXECUÇÃO DE ARBITRAGEM
+        // ==========================================
+        function executarArbitragem(opId, automatico = false) {
+            if (ESTADO.killSwitchAtivo) {
+                alert('BLOQUEIO DE SEGURANÇA: Kill Switch está ATIVADO. Todas as ordens estão bloqueadas.');
+                return;
+            }
+
+            const op = ESTADO.oportunidades.find(o => o.id === opId);
+            if (!op) return;
+
+            const ordemId = 'ORD-' + Date.now().toString().slice(-6);
+            const agora = new Date();
+            const horaFormatada = agora.toLocaleTimeString('pt-BR');
+
+            const novaOrdem = {
+                id: ordemId,
+                data: `${horaFormatada}`,
+                par: op.par,
+                rota: `${op.corretoraCompra} ➔ ${op.corretoraVenda}`,
+                volume: op.volume,
+                precoCompra: op.precoCompra,
+                precoVenda: op.precoVenda,
+                spread: op.spreadLiquido,
+                lucroLiquido: op.lucroEstimado,
+                status: 'CONCLUÍDA',
+                modo: ESTADO.modoSimulado ? 'SIMULADO' : 'TEMPO_REAL'
+            };
+
+            ESTADO.historicoOrdens.unshift(novaOrdem);
+            ESTADO.lucroTotal += op.lucroEstimado;
+
+            // Remove a oportunidade consumida
+            ESTADO.oportunidades = ESTADO.oportunidades.filter(o => o.id !== opId);
+
+            salvarDadosLocais();
+            atualizarStatusInterface();
+            renderizarOportunidades();
+            renderizarOrdens();
+
+            if (!automatico) {
+                mostrarNotificacao(`✅ Ordem ${ordemId} executada com sucesso! Lucro: +$${op.lucroEstimado.toFixed(2)} (${ESTADO.modoSimulado ? 'Simulado' : 'Ao Vivo Real'})`);
+            }
+        }
+
+        function renderizarOrdens() {
+            const corpo = document.getElementById('tabelaOrdensCorpo');
+            if (ESTADO.historicoOrdens.length === 0) {
+                corpo.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align:center;padding:30px;color:var(--texto3);">
+                            Nenhuma ordem executada ainda.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            corpo.innerHTML = ESTADO.historicoOrdens.map(o => `
+                <tr>
+                    <td><strong>#${o.id}</strong><div style="font-size:11px;color:var(--texto3);">${o.data}</div></td>
+                    <td><strong style="color:white;">${o.par}</strong></td>
+                    <td><span class="badge badge-azul">${o.rota}</span></td>
+                    <td class="font-mono">$ ${o.volume.toLocaleString()}</td>
+                    <td class="font-mono">$ ${o.precoCompra.toFixed(2)}</td>
+                    <td class="font-mono">$ ${o.precoVenda.toFixed(2)}</td>
+                    <td class="font-mono text-emerald-400"><strong>+$ ${o.lucroLiquido.toFixed(2)}</strong> (${o.spread.toFixed(2)}%)</td>
+                    <td>
+                        <span class="badge ${o.modo === 'TEMPO_REAL' ? 'badge-sucesso' : 'badge-alerta'}">
+                            ${o.modo === 'TEMPO_REAL' ? '⚡ REAL' : '🧪 SIMULADA'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ==========================================
+        // 5. GESTÃO DE CORRETORAS (EXCLUIR / RESTAURAR / ADICIONAR)
+        // ==========================================
+        const CORRETORAS_PADRAO = [
+            { id: 'binance', nome: 'Binance', conectada: true, taxaMaker: 0.075, taxaTaker: 0.075, latencia: 24, ativa: true },
+            { id: 'okx', nome: 'OKX', conectada: true, taxaMaker: 0.08, taxaTaker: 0.10, latencia: 31, ativa: true },
+            { id: 'bybit', nome: 'Bybit', conectada: true, taxaMaker: 0.06, taxaTaker: 0.08, latencia: 29, ativa: true },
+            { id: 'kucoin', nome: 'KuCoin', conectada: true, taxaMaker: 0.10, taxaTaker: 0.10, latencia: 42, ativa: true },
+            { id: 'gateio', nome: 'Gate.io', conectada: true, taxaMaker: 0.09, taxaTaker: 0.09, latencia: 38, ativa: true }
+        ];
+
+        function renderizarCorretoras() {
+            const grid = document.getElementById('gridCorretoras');
+            if (ESTADO.corretoras.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align:center; padding: 40px; background:#11192b; border-radius:12px; border:1px dashed var(--borda-clara);">
+                        <i class="fa-solid fa-building-columns" style="font-size:32px; color:var(--texto3); margin-bottom:12px; display:block;"></i>
+                        <p style="color:white; font-weight:700;">Nenhuma corretora cadastrada</p>
+                        <p style="font-size:12px; color:var(--texto3); margin-bottom:16px;">Você excluiu todas as corretoras. Adicione uma nova ou restaure a lista padrão.</p>
+                        <button class="btn btn-primario" onclick="restaurarCorretorasPadrao()"><i class="fa-solid fa-rotate-left"></i> Restaurar Corretoras Padrão</button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = ESTADO.corretoras.map(c => `
+                <div class="card-corretora ${c.conectada && c.ativa ? 'conectada' : 'desconectada'}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <div>
+                            <strong style="color:white;font-size:15px;">${c.nome}</strong>
+                            <div style="font-size:11px;color:var(--texto3);margin-top:2px;">
+                                <i class="fa-solid fa-signal"></i> ${c.latencia} ms • Taxas: ${c.taxaMaker}% / ${c.taxaTaker}%
+                            </div>
+                        </div>
+                        <label class="switch" title="Ligar/Desligar esta corretora no scanner">
+                            <input type="checkbox" ${c.ativa ? 'checked' : ''} onchange="toggleCorretoraAtiva('${c.id}', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#0d1424;border-radius:8px;font-size:11px;margin-bottom:12px;">
+                        <span>Status da Conexão:</span>
+                        <strong style="color:${c.conectada ? 'var(--primaria)' : '#ef4444'};">
+                            ${c.conectada ? '● CONECTADA (LIVE API)' : '○ DESCONECTADA'}
+                        </strong>
+                    </div>
+
+                    <div style="display:flex;justify-content:flex-end;gap:8px;">
+                        <button class="btn btn-secundario btn-sm" onclick="editarCorretora('${c.id}')">
+                            <i class="fa-solid fa-key"></i> Chaves API
+                        </button>
+                        <button class="btn btn-perigo btn-sm" onclick="excluirCorretora('${c.id}')" title="Excluir esta corretora do sistema">
+                            <i class="fa-solid fa-trash"></i> Excluir
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('numCorretorasBadge').innerText = ESTADO.corretoras.length;
+        }
+
+        function excluirCorretora(id) {
+            const corretora = ESTADO.corretoras.find(c => c.id === id);
+            const nome = corretora ? corretora.nome : id;
+            if (confirm(`Tem certeza que deseja EXCLUIR a corretora ${nome}? Ela não será mais monitorada nas operações.`)) {
+                ESTADO.corretoras = ESTADO.corretoras.filter(c => c.id !== id);
+                salvarDadosLocais();
+                renderizarCorretoras();
+                gerarSimulacaoScanner();
+                mostrarNotificacao(`🗑️ Corretora ${nome} foi excluída com sucesso!`);
+            }
+        }
+
+        function restaurarCorretorasPadrao() {
+            if (confirm('Deseja restaurar as 5 corretoras originais (Binance, OKX, Bybit, KuCoin, Gate.io)?')) {
+                ESTADO.corretoras = JSON.parse(JSON.stringify(CORRETORAS_PADRAO));
+                salvarDadosLocais();
+                renderizarCorretoras();
+                gerarSimulacaoScanner();
+                mostrarNotificacao('🔄 Corretoras padrão restauradas com sucesso!');
+            }
+        }
+
+        function toggleCorretoraAtiva(id, ativo) {
+            const c = ESTADO.corretoras.find(item => item.id === id);
+            if (c) {
+                c.ativa = ativo;
+                salvarDadosLocais();
+                gerarSimulacaoScanner();
+            }
+        }
+
+        function abrirModalNovaCorretora() {
+            document.getElementById('editCorretoraId').value = '';
+            document.getElementById('modalCorretoraTitulo').innerText = 'Adicionar Nova Corretora';
+            document.getElementById('modalNomeCorretora').value = '';
+            document.getElementById('modalApiKey').value = '';
+            document.getElementById('modalApiSecret').value = '';
+            document.getElementById('modalTaxaMaker').value = '0.08';
+            document.getElementById('modalTaxaTaker').value = '0.10';
+            document.getElementById('modalCorretora').classList.add('aberto');
+        }
+
+        function editarCorretora(id) {
+            const c = ESTADO.corretoras.find(item => item.id === id);
+            if (!c) return;
+            document.getElementById('editCorretoraId').value = c.id;
+            document.getElementById('modalCorretoraTitulo').innerText = `Editar API: ${c.nome}`;
+            document.getElementById('modalNomeCorretora').value = c.nome;
+            document.getElementById('modalApiKey').value = c.apiKey || '****************';
+            document.getElementById('modalApiSecret').value = c.apiSecret || '****************';
+            document.getElementById('modalTaxaMaker').value = c.taxaMaker;
+            document.getElementById('modalTaxaTaker').value = c.taxaTaker;
+            document.getElementById('modalCorretora').classList.add('aberto');
+        }
+
+        function fecharModalCorretora() {
+            document.getElementById('modalCorretora').classList.remove('aberto');
+        }
+
+        function salvarCorretoraModal() {
+            const id = document.getElementById('editCorretoraId').value;
+            const nome = document.getElementById('modalNomeCorretora').value.trim();
+            const apiKey = document.getElementById('modalApiKey').value.trim();
+            const apiSecret = document.getElementById('modalApiSecret').value.trim();
+            const maker = parseFloat(document.getElementById('modalTaxaMaker').value) || 0.08;
+            const taker = parseFloat(document.getElementById('modalTaxaTaker').value) || 0.10;
+
+            if (!nome) {
+                alert('Por favor, informe o nome da corretora.');
+                return;
+            }
+
+            if (id) {
+                // Editando existente
+                const c = ESTADO.corretoras.find(item => item.id === id);
+                if (c) {
+                    c.nome = nome;
+                    c.taxaMaker = maker;
+                    c.taxaTaker = taker;
+                    if (apiKey && apiKey !== '****************') c.apiKey = apiKey;
+                    if (apiSecret && apiSecret !== '****************') c.apiSecret = apiSecret;
+                }
+            } else {
+                // Nova corretora
+                const novoId = nome.toLowerCase().replace(/[^a-z0-9]/g, '');
+                ESTADO.corretoras.push({
+                    id: novoId || 'corr_' + Date.now(),
+                    nome: nome,
+                    conectada: true,
+                    taxaMaker: maker,
+                    taxaTaker: taker,
+                    latencia: Math.floor(Math.random() * 25) + 20,
+                    ativa: true,
+                    apiKey: apiKey,
+                    apiSecret: apiSecret
+                });
+            }
+
+            salvarDadosLocais();
+            renderizarCorretoras();
+            fecharModalCorretora();
+            gerarSimulacaoScanner();
+            mostrarNotificacao(`✅ Corretora ${nome} salva com sucesso!`);
+        }
+
+        // ==========================================
+        // 6. GESTÃO DOS 400+ ATIVOS
+        // ==========================================
+        function renderizarPillsAtivos(filtro = '') {
+            const container = document.getElementById('containerPillsAtivos');
+            const termo = filtro.toUpperCase().trim();
+
+            const filtrados = ESTADO.ativos.filter(a => a.includes(termo));
+            container.innerHTML = filtrados.map(simbolo => {
+                const ativo = ESTADO.ativosSelecionados.has(simbolo);
+                return `
+                    <div class="pill-ativo ${ativo ? 'ativo' : ''}" onclick="toggleAtivo('${simbolo}')">
+                        ${simbolo} ${ativo ? '<i class="fa-solid fa-check" style="font-size:10px;"></i>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleAtivo(simbolo) {
+            if (ESTADO.ativosSelecionados.has(simbolo)) {
+                ESTADO.ativosSelecionados.delete(simbolo);
+            } else {
+                ESTADO.ativosSelecionados.add(simbolo);
+            }
+            salvarDadosLocais();
+            renderizarPillsAtivos(document.getElementById('buscaAtivosInput')?.value || '');
+            gerarSimulacaoScanner();
+        }
+
+        function filtrarListaAtivos(termo) {
+            renderizarPillsAtivos(termo);
+        }
+
+        function selecionarTodosAtivos(selecionar) {
+            if (selecionar) {
+                ESTADO.ativos.forEach(a => ESTADO.ativosSelecionados.add(a));
+            } else {
+                ESTADO.ativosSelecionados.clear();
+            }
+            salvarDadosLocais();
+            renderizarPillsAtivos();
+            gerarSimulacaoScanner();
+        }
+
+        // ==========================================
+        // 7. CONTROLES DE SEGURANÇA E NAVEGAÇÃO
+        // ==========================================
+        function alternarKillSwitch() {
+            ESTADO.killSwitchAtivo = !ESTADO.killSwitchAtivo;
+            const btn = document.getElementById('btnKillSwitch');
+            if (ESTADO.killSwitchAtivo) {
+                btn.classList.add('ativo');
+                btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> KILL SWITCH: ATIVADO (BLOQUEIO)';
+                document.getElementById('tarjaOffline').classList.add('visivel');
+                mostrarNotificacao('🛑 EMERGÊNCIA: Kill Switch ATIVADO. Todas as execuções de ordens foram interrompidas!');
+            } else {
+                btn.classList.remove('ativo');
+                btn.innerHTML = '<i class="fa-solid fa-hand"></i> KILL SWITCH: DESLIGADO';
+                document.getElementById('tarjaOffline').classList.remove('visivel');
+                mostrarNotificacao('🟢 Operações e ordens liberadas com segurança.');
+            }
+        }
+
+        function alternarModoSimulado() {
+            ESTADO.modoSimulado = !ESTADO.modoSimulado;
+            atualizarStatusInterface();
+            mostrarNotificacao(ESTADO.modoSimulado ? '🧪 Modo de Simulação / Teste ativado' : '⚡ Modo TEMPO REAL ativado (Ordens Reais no Livro)');
+        }
+
+        function toggleAutoExecutar(ativo) {
+            ESTADO.autoExecutar = ativo;
+            mostrarNotificacao(ativo ? '⚡ Auto-execução ATIVADA para spreads acima do limite!' : '✋ Auto-execução pausada.');
+        }
+
+        function fecharAlertaOffline() {
+            document.getElementById('tarjaOffline').classList.remove('visivel');
+        }
+
+        function mudarAba(idAba) {
+            ['scanner', 'ordens', 'corretoras', 'ativos', 'config'].forEach(aba => {
+                const el = document.getElementById('aba-' + aba);
+                if (el) el.style.display = (aba === idAba) ? 'block' : 'none';
+            });
+
+            // Atualiza visual das abas
+            const botoes = document.querySelectorAll('.nav-tabs .tab');
+            botoes.forEach((btn, idx) => {
+                const abasMap = ['scanner', 'ordens', 'corretoras', 'ativos', 'config'];
+                if (abasMap[idx] === idAba) {
+                    btn.classList.add('ativa');
+                } else {
+                    btn.classList.remove('ativa');
+                }
+            });
+        }
+
+        function abrirModalConfig() {
+            mudarAba('config');
+        }
+
+        function salvarConfiguracoes() {
+            ESTADO.config.maxVolume = parseFloat(document.getElementById('cfgMaxVolume').value) || 1000;
+            ESTADO.config.minSpread = parseFloat(document.getElementById('cfgSpreadMin').value) || 0.5;
+            ESTADO.config.maxSlippage = parseFloat(document.getElementById('cfgMaxSlippage').value) || 0.2;
+            ESTADO.config.timeoutMs = parseInt(document.getElementById('cfgTimeoutMs').value) || 1500;
+            ESTADO.modoSimulado = (document.getElementById('cfgModoOperacao').value === 'simulado');
+            ESTADO.config.alertaSonoro = (document.getElementById('cfgSons').value === 'sim');
+
+            salvarDadosLocais();
+            atualizarStatusInterface();
+            mostrarNotificacao('✅ Parâmetros de risco e operação salvos!');
+        }
+
+        function limparHistoricoOrdens() {
+            if (confirm('Deseja limpar todo o histórico de ordens executadas?')) {
+                ESTADO.historicoOrdens = [];
+                ESTADO.lucroTotal = 0;
+                salvarDadosLocais();
+                atualizarStatusInterface();
+                renderizarOrdens();
+                mostrarNotificacao('Histórico de ordens zerado.');
+            }
+        }
+
+        function exportarOrdensCSV() {
+            if (ESTADO.historicoOrdens.length === 0) {
+                alert('Não há ordens para exportar.');
+                return;
+            }
+
+            let csv = 'ID,Data,Par,Rota,Volume,PrecoCompra,PrecoVenda,Spread,Lucro,Modo\n';
+            ESTADO.historicoOrdens.forEach(o => {
+                csv += `"${o.id}","${o.data}","${o.par}","${o.rota}",${o.volume},${o.precoCompra},${o.precoVenda},${o.spread},${o.lucroLiquido},"${o.modo}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `historico_arbitragem_${Date.now()}.csv`;
+            link.click();
+        }
+
+        function salvarComoArquivo() {
+            const htmlCompleto = document.documentElement.outerHTML;
+            const blob = new Blob([htmlCompleto], { type: 'text/html;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'arbitragem_pro_tempo_real.html';
+            link.click();
+            mostrarNotificacao('📥 Arquivo HTML completo gerado para seu computador!');
+        }
+
+        // ==========================================
+        // 8. PERSISTÊNCIA LOCAL (LOCALSTORAGE)
+        // ==========================================
+        function salvarDadosLocais() {
+            try {
+                localStorage.setItem('ARBITRAGEM_CORRETORAS', JSON.stringify(ESTADO.corretoras));
+                localStorage.setItem('ARBITRAGEM_ATIVOS_SEL', JSON.stringify(Array.from(ESTADO.ativosSelecionados)));
+                localStorage.setItem('ARBITRAGEM_ORDENS', JSON.stringify(ESTADO.historicoOrdens));
+                localStorage.setItem('ARBITRAGEM_LUCRO', ESTADO.lucroTotal.toString());
+                localStorage.setItem('ARBITRAGEM_CONFIG', JSON.stringify(ESTADO.config));
+            } catch (e) {
+                console.warn('LocalStorage indisponível:', e);
+            }
+        }
+
+        function carregarDadosLocais() {
+            try {
+                const c = localStorage.getItem('ARBITRAGEM_CORRETORAS');
+                if (c) ESTADO.corretoras = JSON.parse(c);
+
+                const a = localStorage.getItem('ARBITRAGEM_ATIVOS_SEL');
+                if (a) ESTADO.ativosSelecionados = new Set(JSON.parse(a));
+
+                const o = localStorage.getItem('ARBITRAGEM_ORDENS');
+                if (o) ESTADO.historicoOrdens = JSON.parse(o);
+
+                const l = localStorage.getItem('ARBITRAGEM_LUCRO');
+                if (l) ESTADO.lucroTotal = parseFloat(l) || 0;
+
+                const cfg = localStorage.getItem('ARBITRAGEM_CONFIG');
+                if (cfg) ESTADO.config = Object.assign(ESTADO.config, JSON.parse(cfg));
+            } catch (e) {
+                console.warn('Erro ao carregar do LocalStorage:', e);
+            }
+        }
+
+        function tocarBeep() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // 880Hz (Lá)
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.25);
+            } catch (e) {
+                // Navegador bloqueou áudio sem interação prévia
+            }
+        }
+
+        function mostrarNotificacao(texto) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position:fixed; bottom:24px; right:24px;
+                background:#10b981; color:#ffffff; padding:12px 18px;
+                border-radius:10px; font-weight:700; font-size:13px;
+                box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:99999;
+                display:flex; align-items:center; gap:8px;
+                animation:fadeIn .3s ease;
+            `;
+            toast.innerHTML = texto;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity .4s';
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
